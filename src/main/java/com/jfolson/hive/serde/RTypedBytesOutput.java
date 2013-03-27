@@ -37,7 +37,7 @@ import org.apache.hadoop.typedbytes.TypedBytesWritable;
  * Provides functionality for writing typed bytes.
  */
 public class RTypedBytesOutput {
-	public static final Log LOG = LogFactory.getLog("com.sonamine.hive.serde.RTypedBytesOutput");
+	public static final Log LOG = LogFactory.getLog("com.jfolson.hive.serde.RTypedBytesOutput");
 
   private DataOutput out;
 

@@ -74,7 +74,7 @@ import static com.jfolson.hive.serde.RType.*;
  *
  */
 public class RTypedBytesRecordReader implements RecordReader {
-	public static final Log LOG = LogFactory.getLog("com.sonamine.hive.serde.RTypedBytesRecordReader");
+	public static final Log LOG = LogFactory.getLog("com.jfolson.hive.serde.RTypedBytesRecordReader");
   private DataInputStream din;
   private RTypedBytesWritableInput tbIn;
 
@@ -253,7 +253,7 @@ private Converter getConverter(ObjectInspector inputOI, ObjectInspector outputOI
 }
 
 public static class HeterogeneousArrayWritableConverter implements Converter {
-	public static final Log LOG = LogFactory.getLog("com.sonamine.hive.serde.RTypedBytesRecordReader.HeterogeneousArrayWritableConverter");
+	public static final Log LOG = LogFactory.getLog("com.jfolson.hive.serde.RTypedBytesRecordReader.HeterogeneousArrayWritableConverter");
 
 	private ListObjectInspector inputOI;
 	private SettableListObjectInspector outputOI;

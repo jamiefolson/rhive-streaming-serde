@@ -81,7 +81,7 @@ import org.apache.hadoop.typedbytes.TypedBytesWritable;
  * http://github.com/klbostee/ctypedbytes/tree/master
  */
 public class RTypedBytesSerDe implements SerDe {
-	public static final Log LOG = LogFactory.getLog("com.sonamine.hive.serde.RTypedBytesSerDe");
+	public static final Log LOG = LogFactory.getLog("com.jfolson.hive.serde.RTypedBytesSerDe");
   public static final boolean WRAP_KEYS = true;
   public static final boolean WRAP_VALUES = true;
 public static final String NATIVE_PROPERTY = "native";

@@ -60,7 +60,7 @@ import org.apache.hadoop.record.Record;
  * @see TypedBytesOutput
  */
 public class RTypedBytesWritableOutput {
-public static final Log LOG = LogFactory.getLog("com.sonamine.hive.serde.RTypedBytesWritableOutput");
+public static final Log LOG = LogFactory.getLog("com.jfolson.hive.serde.RTypedBytesWritableOutput");
 
   private RTypedBytesOutput out;
 
