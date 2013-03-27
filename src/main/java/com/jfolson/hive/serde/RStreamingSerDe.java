@@ -1,4 +1,4 @@
-package com.sonamine.hive.serde;
+package com.jfolson.hive.serde;
 
 import java.util.Properties;
 

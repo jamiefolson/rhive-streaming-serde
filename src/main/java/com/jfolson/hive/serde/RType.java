@@ -16,22 +16,22 @@
  * limitations under the License.
  */
 
-package com.sonamine.hive.serde;
+package com.jfolson.hive.serde;
 
-import static com.sonamine.hive.serde.RType.BOOL;
-import static com.sonamine.hive.serde.RType.BYTE;
-import static com.sonamine.hive.serde.RType.BYTES;
-import static com.sonamine.hive.serde.RType.DOUBLE;
-import static com.sonamine.hive.serde.RType.ENDOFRECORD;
-import static com.sonamine.hive.serde.RType.FLOAT;
-import static com.sonamine.hive.serde.RType.INT;
-import static com.sonamine.hive.serde.RType.LONG;
-import static com.sonamine.hive.serde.RType.MAP;
-import static com.sonamine.hive.serde.RType.NULL;
-import static com.sonamine.hive.serde.RType.SHORT;
-import static com.sonamine.hive.serde.RType.STRING;
-import static com.sonamine.hive.serde.RType.VECTOR;
-import static com.sonamine.hive.serde.RType.WRITABLE;
+import static com.jfolson.hive.serde.RType.BOOL;
+import static com.jfolson.hive.serde.RType.BYTE;
+import static com.jfolson.hive.serde.RType.BYTES;
+import static com.jfolson.hive.serde.RType.DOUBLE;
+import static com.jfolson.hive.serde.RType.ENDOFRECORD;
+import static com.jfolson.hive.serde.RType.FLOAT;
+import static com.jfolson.hive.serde.RType.INT;
+import static com.jfolson.hive.serde.RType.LONG;
+import static com.jfolson.hive.serde.RType.MAP;
+import static com.jfolson.hive.serde.RType.NULL;
+import static com.jfolson.hive.serde.RType.SHORT;
+import static com.jfolson.hive.serde.RType.STRING;
+import static com.jfolson.hive.serde.RType.VECTOR;
+import static com.jfolson.hive.serde.RType.WRITABLE;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;

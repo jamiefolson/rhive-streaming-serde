@@ -1,6 +1,6 @@
 apply plugin: 'java'
 
-project.group = 'com.sonamine'
+project.group = 'com.jfolson'
 project.version = '0.1'
 project.targetCompatibility = 1.6
 project.sourceCompatibility = 1.6
@@ -9,7 +9,7 @@ repositories {
   mavenCentral()
   mavenLocal()
   flatDir {
-    dirs '../lib'
+    dirs 'lib'
   }
 }
 

@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.sonamine.hive.serde;
+package com.jfolson.hive.serde;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -80,33 +80,30 @@ import org.apache.hadoop.typedbytes.TypedBytesWritable;
  * this, which is apparently 25% faster than the python version is available at
  * http://github.com/klbostee/ctypedbytes/tree/master
  */
-public abstract class RBaseSerDe implements SerDe {
+public class RTypedBytesSerDe implements SerDe {
 	public static final Log LOG = LogFactory.getLog("com.sonamine.hive.serde.RTypedBytesSerDe");
-protected boolean wrapKeys = false;
-protected boolean wrapValues = true;
-protected boolean unwrapKeys = false;
-protected boolean unwrapValues = true;
-public static final String WRAP_VALUE_PROPERTY = "wrap.value"; 
-public static final String WRAP_KEY_PROPERTY = "wrap.key"; 
+  public static final boolean WRAP_KEYS = true;
+  public static final boolean WRAP_VALUES = true;
 public static final String NATIVE_PROPERTY = "native";
+public static final String NATIVE_DEFAULT = "false";
 public static final String KEYLENGTH_PROPERTY = "keylength";
 
 
-  protected int numColumns;
-  protected int numKeys = 0;
-  protected boolean keepAsBytes;
-  protected StructObjectInspector rowOI;
-  protected ArrayList<Object> row;
+  int numColumns;
+  int numKeys = -1;
+  boolean useNative;
+  StructObjectInspector rowOI;
+  ArrayList<Object> row;
 
-  protected TypedBytesWritable serializeBytesWritable;
-  protected NonSyncDataOutputBuffer barrStr;
-  protected RTypedBytesWritableOutput tbOut;
+  BytesWritable serializeBytesWritable;
+  NonSyncDataOutputBuffer barrStr;
+  RTypedBytesWritableOutput tbOut;
 
-  protected NonSyncDataInputBuffer inBarrStr;
-  protected RTypedBytesWritableInput tbIn;
+  NonSyncDataInputBuffer inBarrStr;
+  RTypedBytesWritableInput tbIn;
 
-  protected List<String> columnNames;
-  protected List<TypeInfo> columnTypes;
+  List<String> columnNames;
+  List<TypeInfo> columnTypes;
  
   
   @Override
@@ -114,7 +111,7 @@ public static final String KEYLENGTH_PROPERTY = "keylength";
       throws SerDeException {
 
     // We can get the table definition from tbl.
-    serializeBytesWritable = new TypedBytesWritable();
+    serializeBytesWritable = new BytesWritable();
     barrStr = new NonSyncDataOutputBuffer();
     tbOut = new RTypedBytesWritableOutput(barrStr);
 
@@ -166,23 +163,14 @@ public static final String KEYLENGTH_PROPERTY = "keylength";
     for (int c = 0; c < numColumns; c++) {
       row.add(null);
     }
-    String numStr = tbl.getProperty(KEYLENGTH_PROPERTY);
-    if (numStr != null){
-    	numKeys = Integer.parseInt(numStr);
-    }
-    
-    wrapKeys = Boolean.parseBoolean(tbl.getProperty(WRAP_KEY_PROPERTY, "true"));
-    unwrapKeys = wrapKeys;
-    wrapValues = Boolean.parseBoolean(tbl.getProperty(WRAP_VALUE_PROPERTY, "true"));
-    unwrapValues = wrapValues;
-    
-    keepAsBytes = Boolean.parseBoolean(tbl.getProperty(NATIVE_PROPERTY,"false"));
-    if (keepAsBytes){
-    	if (numKeys>1){
-    		throw new RuntimeException("using native R serialization will only produce at most 1 key, not: "+numKeys);
+    numKeys = Integer.parseInt(tbl.getProperty(KEYLENGTH_PROPERTY, "1"));
+    useNative = Boolean.parseBoolean(tbl.getProperty(NATIVE_PROPERTY,NATIVE_DEFAULT));
+    if (useNative){
+    	if (numKeys!=1){
+    		throw new RuntimeException("using native R serialization will only produce 1 key, not: "+numKeys);
     	}
-    	if (numColumns>2){
-    		throw new RuntimeException("using native R serialization will only produce at most 2 columns, not: "+numColumns);
+    	if (numColumns!=2){
+    		throw new RuntimeException("using native R serialization will only produce 2 columns, not: "+numColumns);
     	}
     }
   }
@@ -194,7 +182,7 @@ public static final String KEYLENGTH_PROPERTY = "keylength";
 
   @Override
   public Class<? extends Writable> getSerializedClass() {
-    return TypedBytesWritable.class;
+    return BytesWritable.class;
   }
 
   @Override
@@ -204,70 +192,12 @@ public static final String KEYLENGTH_PROPERTY = "keylength";
     inBarrStr.reset(data.getBytes(), 0, data.getLength());
 
     try {
-        //Read the key
-        if (!keepAsBytes && unwrapKeys ){
-      	// It's wrapped as a list TWICE, because R will try to c() things once deserialized
-        	RType rtype = tbIn.getInput().readType(); 
-        	if (rtype==null){
-        		 throw new RuntimeException("End of stream");
-        	}
-        	if (rtype!=RType.VECTOR) {
-        		throw new RuntimeException("Error: expecting vector<vector<key>>, instead of "+rtype.name());
-        	}
-        	int vectorLength = tbIn.getInput().readVectorHeader();
-        	if (vectorLength!=1){
-        		throw new RuntimeException("Hive cannot support multiple keys");
-        	}
-        	
-        	rtype = tbIn.getInput().readType(); 
-        	if (rtype==null){
-        		 throw new RuntimeException("Unexpected end of stream");
-        	}
-        	if (rtype!=RType.VECTOR) {
-        		throw new RuntimeException("Error: expecting vector<key>, instead of "+rtype.name());
-        	}
-        	vectorLength = tbIn.getInput().readVectorHeader();
-        	if (vectorLength != numKeys){
-        		throw new RuntimeException("Error: expecting "+numKeys+
-        				" values, but list only has: "+vectorLength);
-        	}
-        }
-        for (int i=0;i<numKeys;i++){
-        	//LOG.info("Deserializing column: "+i);
-            row.set(i, deserializeField(tbIn, columnTypes.get(i), row.get(i)));
-        }
-        //Read the value
-        if (!keepAsBytes && unwrapValues ) {
-        	// It's wrapped as a list TWICE, because R will try to c() things once deserialized
-        	RType rtype = tbIn.getInput().readType(); 
-        	if (rtype==null){
-        		 throw new RuntimeException("End of stream");
-        	}
-        	if (rtype!=RType.VECTOR) {
-        		throw new RuntimeException("Error: expecting vector<vector<value>>, instead of "+rtype.name());
-        	}
-        	int vectorLength = tbIn.getInput().readVectorHeader();
-        	if (vectorLength!=1){
-        		throw new RuntimeException("Hive cannot support multiple values");
-        	}
-        	
-        	rtype = tbIn.getInput().readType(); 
-        	if (rtype==null){
-        		 throw new RuntimeException("Unexpected end of stream");
-        	}
-        	if (rtype!=RType.VECTOR) {
-        		throw new RuntimeException("Error: expecting vector<key>, instead of "+rtype.name());
-        	}
-        	vectorLength = tbIn.getInput().readVectorHeader();
-        	if (vectorLength != (numColumns - numKeys)){
-        		throw new RuntimeException("Error: expecting "+(numColumns-numKeys)+
-        				" values, but list only has: "+vectorLength);
-        	}
-        }
-        for (int i = numKeys; i < numColumns; i++) {
-        	//LOG.info("Deserializing column: "+i);
-            row.set(i, deserializeField(tbIn, columnTypes.get(i), row.get(i)));
-        }
+    	
+    	
+      for (int i = 0; i < numColumns; i++) {
+    	LOG.info("Deserializing column: "+i);
+        row.set(i, deserializeField(tbIn, columnTypes.get(i), row.get(i)));
+      }
 
       // The next byte should be the marker
       // R doesn't want this
@@ -280,7 +210,7 @@ public static final String KEYLENGTH_PROPERTY = "keylength";
     return row;
   }
 
-  protected Object deserializeField(RTypedBytesWritableInput in, TypeInfo type,
+  Object deserializeField(RTypedBytesWritableInput in, TypeInfo type,
       Object reuse) throws IOException {
 
 	 RType rtype = in.readTypeCode();
@@ -421,7 +351,7 @@ public static final String KEYLENGTH_PROPERTY = "keylength";
       List<? extends StructField> fields = soi.getAllStructFieldRefs();
       
       //Write the key
-      if (!keepAsBytes && wrapKeys ){
+      if (!useNative && WRAP_KEYS){
     	// Wrap it as a list TWICE, because R will try to c() things once deserialized
       	tbOut.getOutput().writeVectorHeader(1); 
     	tbOut.getOutput().writeVectorHeader(numKeys); 
@@ -434,7 +364,7 @@ public static final String KEYLENGTH_PROPERTY = "keylength";
       }
       //Write the value
       // write it as a list if more than one element
-      if (!keepAsBytes && wrapValues) {
+      if (!useNative && WRAP_VALUES) {
       	// Wrap it as a list TWICE, because R will try to c() things once deserialized
       	tbOut.getOutput().writeVectorHeader(1); 
       	tbOut.getOutput().writeVectorHeader(numColumns-numKeys); 
@@ -456,7 +386,7 @@ public static final String KEYLENGTH_PROPERTY = "keylength";
     return serializeBytesWritable;
   }
 
-  protected void serializeField(Object o, ObjectInspector oi, Object reuse)
+  private void serializeField(Object o, ObjectInspector oi, Object reuse)
       throws IOException {
 	  //LOG.info("Serializing hive type: "+oi.getTypeName());
 	  //LOG.info("Serializing category: "+oi.getCategory().toString());
@@ -559,7 +489,6 @@ public static final String KEYLENGTH_PROPERTY = "keylength";
     	ListObjectInspector loi = (ListObjectInspector)oi;
     	ObjectInspector elemOI = loi.getListElementObjectInspector();
     	List l = loi.getList(o);
-    	// Don't use array (typecode: 144) until everything supports NA values in typedbytes
     	if (false){//(elemOI.getCategory()==ObjectInspector.Category.PRIMITIVE){
     		tbOut.writeArray(l,(PrimitiveObjectInspector) elemOI);
     	}else {
@@ -583,6 +512,94 @@ public static final String KEYLENGTH_PROPERTY = "keylength";
     }
     }
   }
+  /*private void serializeArray(Object o, ObjectInspector oi, boolean reuse) throws IOException{
+	ListObjectInspector loi = (ListObjectInspector)oi;
+	ObjectInspector elemOi = loi.getListElementObjectInspector();
+	if (elemOi.getCategory()==Category.PRIMITIVE) {
+		PrimitiveObjectInspector poi = (PrimitiveObjectInspector)elemOi;
+		int length = loi.getListLength(o);
+		int rawlength = -1;
+		switch (poi.getPrimitiveCategory()) {
+	        case BYTE:{
+	          rawlength = length ;}
+	        break;
+	        case BOOLEAN:{
+	          rawlength = length;}
+	        break;
+	        case INT:{
+	          rawlength = (length)*4;}
+	        break;
+	        case LONG:{
+	          rawlength = (length)*8;}
+	        break;
+	        case FLOAT:
+	        case DOUBLE:
+	          rawlength = (length)*8;
+	        break;
+	        default: 
+	    	}
+		if (rawlength <0){
+			serializeVector(o,oi,reuse);
+		}else {
+			barrStr.write(145);
+			barrStr.writeInt(rawlength+1);
+			switch (poi.getPrimitiveCategory()) {
+	        case BYTE:{
+	          barrStr.writeInt(1);}
+	        break;
+	        case BOOLEAN:{
+	        	barrStr.writeInt(2);}
+	        break;
+	        case INT:{
+	        	barrStr.writeInt(3);}
+	        break;
+	        case LONG:{
+	        	barrStr.writeInt(4);}
+	        break;
+	        case FLOAT:
+	        case DOUBLE:
+	        	barrStr.writeInt(6);
+	        break;
+	        default: throw new RuntimeException("We just check this.  You shouldn't ever get here");
+	    	}
+			
+		}
+	}		
+  }
+  private void deserializeArray(Object o, ObjectInspector oi, boolean reuse) throws IOException{
+		ListObjectInspector loi = (ListObjectInspector)oi;
+		ObjectInspector elemOi = loi.getListElementObjectInspector();
+		if (elemOi.getCategory()==Category.PRIMITIVE) {
+			PrimitiveObjectInspector poi = (PrimitiveObjectInspector)elemOi;
+			int length = loi.getListLength(o);
+			int rawlength = -1;
+			switch (poi.getPrimitiveCategory()) {
+		        case BYTE:{
+		          length = rawlength - 1;}
+		        break;
+		        case BOOLEAN:{
+		          length = rawlength - 1;}
+		        break;
+		        case INT:{
+		          length = (rawlength - 1)/4;}
+		        break;
+		        case LONG:{
+		          length = (rawlength - 1)/8;}
+		        break;
+		        case FLOAT:
+		        case DOUBLE:
+		          length = (rawlength -1 )/8;
+		        break;
+		        default: 
+		    	}
+			if (rawlength <0){
+				//out.serializeVector(o,oi,reuse);
+			}else {
+			barrStr.write(145);
+			barrStr.writeInt(rawlength+1);
+			}
+		}		
+	  }*/
 
   public SerDeStats getSerDeStats() {
     // no support for statistics

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package com.sonamine.hive.serde;
+package com.jfolson.hive.serde;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInput;
@@ -50,7 +50,8 @@ import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableUtils;
 import org.apache.hadoop.util.ReflectionUtils;
-import static com.sonamine.hive.serde.RType.*;
+
+import static com.jfolson.hive.serde.RType.*;
 
 /**
  * Provides functionality for reading typed bytes as Writable objects.

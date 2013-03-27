@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package com.sonamine.hive.serde;
+package com.jfolson.hive.serde;
 
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -65,8 +65,9 @@ import org.apache.hadoop.record.Buffer;
 import org.apache.hadoop.typedbytes.TypedBytesWritable;
 import org.apache.log4j.Logger;
 
-import com.sonamine.hive.serde.*;
-import static com.sonamine.hive.serde.RType.*;
+import com.jfolson.hive.serde.*;
+
+import static com.jfolson.hive.serde.RType.*;
 
 /**
  * TypedBytesRecordReader.

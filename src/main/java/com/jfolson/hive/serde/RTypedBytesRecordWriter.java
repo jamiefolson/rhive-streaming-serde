@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package com.sonamine.hive.serde;
+package com.jfolson.hive.serde;
 
 import java.io.IOException;
 import java.io.OutputStream;
